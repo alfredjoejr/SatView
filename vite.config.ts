@@ -1,5 +1,6 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { handleApiRequest } from './server/app.ts';
 
 /**
  * Cesium ships static assets (web workers, textures, widget CSS) that must be
@@ -8,6 +9,36 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
  */
 const CESIUM_SOURCE = 'node_modules/cesium/Build/Cesium';
 const CESIUM_DIR = 'cesium';
+
+function satViewBackendPlugin(): Plugin {
+  const attachMiddleware = (middlewares: {
+    use: (
+      fn: (
+        req: import('node:http').IncomingMessage,
+        res: import('node:http').ServerResponse,
+        next: (err?: unknown) => void,
+      ) => void,
+    ) => void;
+  }) => {
+    middlewares.use((req, res, next) => {
+      void handleApiRequest(req, res)
+        .then((handled) => {
+          if (!handled) next();
+        })
+        .catch(next);
+    });
+  };
+
+  return {
+    name: 'satview-backend',
+    configureServer(server) {
+      attachMiddleware(server.middlewares);
+    },
+    configurePreviewServer(server) {
+      attachMiddleware(server.middlewares);
+    },
+  };
+}
 
 export default defineConfig(() => {
   // Set SATVIEW_BASE=/SatView/ when deploying to a sub-path (e.g. GitHub Pages).
@@ -19,23 +50,15 @@ export default defineConfig(() => {
       CESIUM_BASE_URL: JSON.stringify(`${base}${CESIUM_DIR}/`),
     },
     plugins: [
+      satViewBackendPlugin(),
       viteStaticCopy({
         targets: ['ThirdParty', 'Workers', 'Assets', 'Widgets'].map((folder) => ({
           src: `${CESIUM_SOURCE}/${folder}`,
           dest: CESIUM_DIR,
+          rename: { stripBase: 4 },
         })),
       }),
     ],
-    server: {
-      // Dev-only proxy so local development never hits CORS issues.
-      proxy: {
-        '/api/celestrak': {
-          target: 'https://celestrak.org',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api\/celestrak/, ''),
-        },
-      },
-    },
     worker: {
       format: 'es',
     },

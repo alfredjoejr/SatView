@@ -1,8 +1,7 @@
 import { json2satrec, propagate, type OMMJsonObject } from 'satellite.js';
-import { CATALOG_CACHE_TTL_MS } from '../../config/constants';
 import type { ConstellationConfig } from '../../config/constellations';
 import type { CatalogSource, SatelliteRecord } from '../types';
-import { fetchGroupOmm, type OmmRecord } from './celestrakClient';
+import { fetchCatalogFromBackend, fetchGroupOmm, type OmmRecord } from './celestrakClient';
 import { idbGet, idbSet } from './idbStore';
 
 interface CachedCatalog {
@@ -17,7 +16,7 @@ export interface CatalogLoadResult {
 }
 
 export interface LoadOptions {
-  /** Ignore a fresh cache and hit the network. */
+  /** Ignore backend cache and re-download from CelesTrak. */
   forceRefresh?: boolean;
 }
 
@@ -27,31 +26,43 @@ const MAX_EPOCH_AGE_DAYS = 45;
 const cacheKey = (c: ConstellationConfig) => `catalog:${c.id}`;
 
 /**
- * Load a constellation catalog: fresh cache → network → stale cache fallback.
+ * Load a constellation catalog via the SatView backend API (`/api/catalog/:group`),
+ * storing a copy in IndexedDB for offline fallback, and falling back to direct
+ * CelesTrak fetch on static-only hosts.
  */
 export async function loadConstellation(
   constellation: ConstellationConfig,
   options: LoadOptions = {},
 ): Promise<CatalogLoadResult> {
   const cached = await idbGet<CachedCatalog>(cacheKey(constellation));
-  const isFresh = cached && Date.now() - cached.fetchedAt < CATALOG_CACHE_TTL_MS;
-
-  if (cached && isFresh && !options.forceRefresh) {
-    return build(constellation, cached, 'cache');
-  }
 
   try {
-    const records = await fetchGroupOmm(constellation.celestrakGroup);
-    if (records.length === 0) throw new Error('No satellites returned');
-    const entry: CachedCatalog = { fetchedAt: Date.now(), records };
+    const backend = await fetchCatalogFromBackend(constellation.celestrakGroup, Boolean(options.forceRefresh));
+    if (backend.records.length === 0) throw new Error('No satellites returned');
+
+    const entry: CachedCatalog = {
+      fetchedAt: backend.fetchedAt.getTime(),
+      records: backend.records,
+    };
     await idbSet(cacheKey(constellation), entry);
-    return build(constellation, entry, 'network');
-  } catch (err) {
-    if (cached) {
-      console.warn('[catalog] network failed, using stale cache', err);
-      return build(constellation, cached, 'stale-cache');
+    return build(constellation, entry, backend.source);
+  } catch (backendErr) {
+    try {
+      const records = await fetchGroupOmm(constellation.celestrakGroup);
+      if (records.length === 0) throw new Error('No satellites returned');
+      const entry: CachedCatalog = { fetchedAt: Date.now(), records };
+      await idbSet(cacheKey(constellation), entry);
+      return build(constellation, entry, 'network');
+    } catch (directErr) {
+      if (cached) {
+        console.warn('[catalog] backend and CelesTrak unavailable, using offline IndexedDB copy', {
+          backendErr,
+          directErr,
+        });
+        return build(constellation, cached, 'stale-cache');
+      }
+      throw backendErr instanceof Error ? backendErr : directErr;
     }
-    throw err;
   }
 }
 

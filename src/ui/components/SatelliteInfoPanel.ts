@@ -3,7 +3,7 @@ import { PASS_SEARCH_HOURS } from '../../config/constants';
 import { createObserverFrame, lookAngleFromEcf } from '../../core/orbit/lookAngles';
 import { predictNextPass } from '../../core/orbit/passPredictor';
 import { propagateState, vectorLength } from '../../core/orbit/propagator';
-import type { SatellitePass } from '../../core/types';
+import type { ObserverLocation, SatellitePass, SatelliteRecord } from '../../core/types';
 import {
   formatAzimuth,
   formatClock,
@@ -25,6 +25,17 @@ const ROWS: [RowKey, string][] = [
   ['norad', 'NORAD ID'], ['intl', 'Intl. designator'], ['incl', 'Inclination'], ['period', 'Period'], ['epoch', 'Data epoch'],
 ];
 
+interface BackendPassPayload {
+  pass: {
+    aos: string;
+    los: string;
+    maxElDeg: number;
+    maxElTime: string;
+    aosAzDeg: number;
+    losAzDeg: number;
+  } | null;
+}
+
 /** Floating details card for the selected satellite (live position + next pass). */
 export class SatelliteInfoPanel {
   private readonly root = byId('info-panel');
@@ -34,6 +45,8 @@ export class SatelliteInfoPanel {
   private readonly passBox = h('div', { class: 'pass-box' });
   private pass: SatellitePass | null = null;
   private passComputedAt = 0;
+  private passLoading = false;
+  private passRequestSeq = 0;
 
   constructor(private readonly ctx: AppContext) {
     const table = h('dl', { class: 'info-grid' });
@@ -80,12 +93,13 @@ export class SatelliteInfoPanel {
     this.set('period', `${record.periodMin.toFixed(1)} min`);
     this.set('epoch', timeAgo(record.epoch));
     this.invalidatePass();
-    this.updateLive(this.ctx.getSimDate());
   }
 
   private invalidatePass(): void {
     this.pass = null;
     this.passComputedAt = 0;
+    this.passLoading = false;
+    this.passRequestSeq++;
     if (this.ctx.store.selectedRecord) this.updateLive(this.ctx.getSimDate());
   }
 
@@ -128,14 +142,62 @@ export class SatelliteInfoPanel {
     const stale = this.passComputedAt === 0
       || (this.pass !== null && date.getTime() > this.pass.los.getTime())
       || Math.abs(date.getTime() - this.passComputedAt) > 10 * 60_000;
-    if (stale) {
-      this.pass = predictNextPass(record.satrec, frame, store.elevationMaskDeg, date, PASS_SEARCH_HOURS);
-      this.passComputedAt = date.getTime();
+    if (stale && !this.passLoading) {
+      void this.loadPass(record, observer, store.constellation.celestrakGroup, store.elevationMaskDeg, date);
     }
     this.renderPass(date);
   }
 
+  private async loadPass(
+    record: SatelliteRecord,
+    observer: ObserverLocation,
+    group: string,
+    maskDeg: number,
+    date: Date,
+  ): Promise<void> {
+    const seq = ++this.passRequestSeq;
+    this.passLoading = true;
+    try {
+      const params = new URLSearchParams({
+        group,
+        lat: String(observer.latDeg),
+        lon: String(observer.lonDeg),
+        altM: String(observer.altM),
+        maskDeg: String(maskDeg),
+        horizonHours: String(PASS_SEARCH_HOURS),
+        time: date.toISOString(),
+      });
+      const response = await fetch(`/api/satellites/${record.noradId}/pass?${params.toString()}`);
+      if (!response.ok) throw new Error(`Pass API returned ${response.status}`);
+      const data = (await response.json()) as BackendPassPayload;
+      if (seq !== this.passRequestSeq) return;
+      this.pass = data.pass
+        ? {
+            aos: new Date(data.pass.aos),
+            los: new Date(data.pass.los),
+            maxElDeg: data.pass.maxElDeg,
+            maxElTime: new Date(data.pass.maxElTime),
+            aosAzDeg: data.pass.aosAzDeg,
+            losAzDeg: data.pass.losAzDeg,
+          }
+        : null;
+    } catch {
+      if (seq !== this.passRequestSeq) return;
+      this.pass = predictNextPass(record.satrec, createObserverFrame(observer), maskDeg, date, PASS_SEARCH_HOURS);
+    } finally {
+      if (seq === this.passRequestSeq) {
+        this.passLoading = false;
+        this.passComputedAt = date.getTime();
+        this.renderPass(this.ctx.getSimDate());
+      }
+    }
+  }
+
   private renderPass(now: Date): void {
+    if (this.passLoading && !this.pass) {
+      replaceChildren(this.passBox, h('p', { class: 'muted small', text: 'Computing next pass…' }));
+      return;
+    }
     const p = this.pass;
     if (!p) {
       replaceChildren(this.passBox, h('p', { class: 'muted small', text: `No pass above ${this.ctx.store.elevationMaskDeg}° in the next ${PASS_SEARCH_HOURS} h.` }));

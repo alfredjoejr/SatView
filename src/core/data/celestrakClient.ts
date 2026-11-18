@@ -1,4 +1,5 @@
 import { CELESTRAK_BASE_URL } from '../../config/constants';
+import type { CatalogSource } from '../types';
 
 /**
  * Orbit Mean-elements Message (OMM) record as returned by CelesTrak's
@@ -25,9 +26,62 @@ export interface OmmRecord {
   MEAN_MOTION_DDOT: number;
 }
 
+export interface BackendCatalogPayload {
+  group: string;
+  fetchedAt: Date;
+  source: CatalogSource;
+  records: OmmRecord[];
+}
+
 const REQUEST_TIMEOUT_MS = 30_000;
 
-/** Download the current element sets for a CelesTrak group, e.g. "starlink". */
+/** Fetch an OMM catalog from the SatView backend API (cached on disk/memory). */
+export async function fetchCatalogFromBackend(
+  group: string,
+  forceRefresh = false,
+): Promise<BackendCatalogPayload> {
+  const qs = forceRefresh ? '?refresh=1' : '';
+  const url = `/api/catalog/${encodeURIComponent(group)}${qs}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`Backend responded ${response.status}: ${body.slice(0, 120)}`);
+    }
+    const parsed = JSON.parse(body) as {
+      group?: unknown;
+      fetchedAt?: unknown;
+      source?: unknown;
+      records?: unknown;
+    };
+    if (!Array.isArray(parsed.records)) {
+      throw new Error('Backend returned an unexpected catalog payload');
+    }
+    const fetchedAt = new Date(typeof parsed.fetchedAt === 'string' ? parsed.fetchedAt : Date.now());
+    const source: CatalogSource =
+      parsed.source === 'stale-cache' || parsed.source === 'cache' || parsed.source === 'network'
+        ? parsed.source
+        : 'network';
+    return {
+      group: typeof parsed.group === 'string' ? parsed.group : group,
+      fetchedAt: Number.isNaN(fetchedAt.getTime()) ? new Date() : fetchedAt,
+      source,
+      records: parsed.records.filter(isOmmRecord),
+    };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Timed out downloading satellite catalog');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Direct fallback against CelesTrak when running without the backend server. */
 export async function fetchGroupOmm(group: string): Promise<OmmRecord[]> {
   const url = `${CELESTRAK_BASE_URL}/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=json`;
   const controller = new AbortController();

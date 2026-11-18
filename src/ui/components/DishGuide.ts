@@ -40,6 +40,7 @@ export class DishGuide {
     this.progress.value = 0;
     try {
       const coverage = await analyzeCoverage(store.records, store.observer, store.elevationMaskDeg, this.ctx.getSimDate(), {
+        group: store.constellation.celestrakGroup,
         windowMinutes: COVERAGE_WINDOW_MINUTES,
         stepSeconds: COVERAGE_STEP_SECONDS,
         sectorCount: COVERAGE_SECTOR_COUNT,

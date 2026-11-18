@@ -4,6 +4,7 @@ import { yieldToBrowser } from '../../utils/async';
 import { approxSinElevation, createObserverFrame, lookAngleFromEcf } from './lookAngles';
 
 export interface CoverageOptions {
+  group?: string;
   windowMinutes: number;
   stepSeconds: number;
   sectorCount: number;
@@ -12,10 +13,59 @@ export interface CoverageOptions {
   onProgress?: (fraction: number) => void;
 }
 
+interface BackendCoverageJson {
+  sectorCount: number;
+  sectorHits: number[];
+  sectorAvgElDeg: (number | null)[];
+  bestAzDeg: number;
+  bestSpanDeg: number;
+  bestSectors: number[];
+  bestAvgElDeg: number | null;
+  avgVisibleCount: number;
+  windowMinutes: number;
+  computedAt: string;
+}
+
+async function fetchBackendCoverage(
+  group: string,
+  observer: ObserverLocation,
+  maskDeg: number,
+  start: Date,
+  options: CoverageOptions,
+): Promise<SkyCoverage> {
+  const params = new URLSearchParams({
+    group,
+    lat: String(observer.latDeg),
+    lon: String(observer.lonDeg),
+    altM: String(observer.altM),
+    maskDeg: String(maskDeg),
+    windowMinutes: String(options.windowMinutes),
+    stepSeconds: String(options.stepSeconds),
+    sectorCount: String(options.sectorCount),
+    time: start.toISOString(),
+  });
+  const response = await fetch(`/api/observer/coverage?${params.toString()}`);
+  if (!response.ok) throw new Error(`Coverage API returned ${response.status}`);
+  const data = (await response.json()) as BackendCoverageJson;
+  options.onProgress?.(1);
+  return {
+    sectorCount: data.sectorCount,
+    sectorHits: data.sectorHits,
+    sectorAvgElDeg: data.sectorAvgElDeg.map((v) => (v === null ? Number.NaN : v)),
+    bestAzDeg: data.bestAzDeg,
+    bestSpanDeg: data.bestSpanDeg,
+    bestSectors: data.bestSectors,
+    bestAvgElDeg: data.bestAvgElDeg === null ? Number.NaN : data.bestAvgElDeg,
+    avgVisibleCount: data.avgVisibleCount,
+    windowMinutes: data.windowMinutes,
+    computedAt: new Date(data.computedAt),
+  };
+}
+
 /**
  * Sample the sky over the next N minutes and count, per azimuth sector, how
- * many satellites are above the elevation mask. The densest window of sectors
- * is the direction where a dish most needs a clear, unobstructed view.
+ * many satellites are above the elevation mask. Uses the SatView backend API
+ * first, falling back to local browser computation when offline.
  */
 export async function analyzeCoverage(
   records: readonly SatelliteRecord[],
@@ -24,6 +74,15 @@ export async function analyzeCoverage(
   start: Date,
   options: CoverageOptions,
 ): Promise<SkyCoverage> {
+  if (options.group) {
+    try {
+      options.onProgress?.(0.25);
+      return await fetchBackendCoverage(options.group, observer, maskDeg, start, options);
+    } catch (err) {
+      console.warn('[coverage] backend unavailable, computing locally', err);
+    }
+  }
+
   const { windowMinutes, stepSeconds, sectorCount, onProgress } = options;
   const windowSectors = Math.min(options.windowSectors ?? 3, sectorCount);
   const frame = createObserverFrame(observer);
