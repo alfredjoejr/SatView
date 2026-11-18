@@ -1,0 +1,227 @@
+:root {
+  --bg: #07111f;
+  --bg-elev: #0d1b2e;
+  --bg-elev-2: #12243b;
+  --border: rgba(143, 184, 222, 0.16);
+  --text: #e6eef7;
+  --text-muted: #8ea3ba;
+  --accent: #4cc9f0;
+  --accent-strong: #2bb3e0;
+  --green: #3ddc97;
+  --yellow: #ffd166;
+  --red: #ef476f;
+  --radius: 10px;
+  --sidebar-width: 340px;
+  --font: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  overflow: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100%;
+  transition: grid-template-columns 0.25s ease;
+}
+
+body.sidebar-collapsed #app {
+  grid-template-columns: 0 1fr;
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.globe {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- Generic controls ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #032030;
+  font-weight: 600;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.btn.active {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.btn.small {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+input[type='number'],
+input[type='search'] {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+input:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--yellow);
+}
+
+progress {
+  width: 100%;
+  height: 6px;
+  margin: 8px 0;
+  accent-color: var(--accent);
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-elev-2);
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
+.badge.gps,
+.badge.up {
+  background: rgba(61, 220, 151, 0.15);
+  color: var(--green);
+}
+
+.badge.manual {
+  background: rgba(76, 201, 240, 0.15);
+  color: var(--accent);
+}
+
+.badge.down {
+  background: rgba(239, 71, 111, 0.15);
+  color: var(--red);
+}
+
+.muted { color: var(--text-muted); }
+.small { font-size: 12px; }
+.center { text-align: center; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.up-text { color: var(--green); }
+.hint { color: var(--text-muted); margin: 0 0 10px; line-height: 1.45; }
+
+/* ---------- Loading ---------- */
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(7, 17, 31, 0.75);
+  z-index: 20;
+  transition: opacity 0.3s;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

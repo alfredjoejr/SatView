@@ -1,0 +1,32 @@
+{
+  "name": "satview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source 3D satellite tracker (Starlink first) with 'satellites above me' view and dish positioning guidance.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc"
+  },
+  "keywords": [
+    "satellite",
+    "tracker",
+    "starlink",
+    "cesium",
+    "sgp4",
+    "tle"
+  ],
+  "dependencies": {
+    "cesium": "^1.147.0",
+    "satellite.js": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-static-copy": "^4.1.1"
+  }
+}

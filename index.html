@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Open-source 3D satellite tracker: see every Starlink satellite and which ones are above you right now." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>SatView — Open Satellite Tracker</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar" class="sidebar" aria-label="Controls"></aside>
+
+      <main id="stage" class="stage">
+        <div id="globe" class="globe"></div>
+
+        <header id="topbar" class="topbar"></header>
+        <section id="info-panel" class="info-panel" hidden></section>
+        <div id="tooltip" class="tooltip" hidden></div>
+        <footer id="statusbar" class="statusbar"></footer>
+        <div id="loading" class="loading-overlay">
+          <div class="spinner"></div>
+          <p>Loading satellite catalog…</p>
+        </div>
+      </main>
+    </div>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

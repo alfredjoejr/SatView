@@ -1,0 +1,303 @@
+/* ---------- Sidebar shell ---------- */
+
+.sidebar {
+  background: var(--bg-elev);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+body.sidebar-collapsed .sidebar {
+  padding: 0;
+  border: none;
+}
+
+/* ---------- Brand ---------- */
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 38px;
+  height: 38px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: 0.3px;
+}
+
+.brand p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip.active {
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 18%, transparent);
+}
+
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chip small {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-color);
+}
+
+/* ---------- Panels ---------- */
+
+.panel {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  user-select: none;
+}
+
+.panel-header.collapsible {
+  cursor: pointer;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
+.panel-header.collapsible h2::before {
+  content: '▾';
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.2s;
+}
+
+.panel.collapsed .panel-header h2::before {
+  transform: rotate(-90deg);
+}
+
+.panel-body {
+  padding: 0 12px 12px;
+}
+
+.panel.collapsed .panel-body {
+  display: none;
+}
+
+/* ---------- Location ---------- */
+
+.loc-summary {
+  margin-bottom: 10px;
+}
+
+.loc-label {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.loc-coords {
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.loc-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.mask-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mask-control strong {
+  color: var(--yellow);
+}
+
+/* ---------- Sky plot ---------- */
+
+.skyplot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.skyplot {
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.skyplot-wrap p {
+  margin: 6px 0 0;
+}
+
+/* ---------- Dish guide ---------- */
+
+.dish-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.dish-dir {
+  font-size: 22px;
+  color: var(--green);
+}
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  height: 80px;
+  margin-bottom: 10px;
+}
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+}
+
+.bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: rgba(143, 184, 222, 0.35);
+}
+
+.bar.best .bar-fill {
+  background: var(--green);
+}
+
+.bar-label {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.tips {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  line-height: 1.45;
+  font-size: 12.5px;
+}
+
+.disclaimer {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---------- Visible list ---------- */
+
+.badge.count {
+  background: rgba(61, 220, 151, 0.15);
+  color: var(--green);
+}
+
+.sat-list-head,
+.sat-row {
+  display: grid;
+  grid-template-columns: 1fr 42px 42px 70px;
+  gap: 6px;
+  align-items: center;
+}
+
+.sat-list-head {
+  padding: 0 6px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.sat-row {
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sat-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sat-row.selected {
+  background: rgba(255, 209, 102, 0.14);
+  color: var(--yellow);
+}
+
+.sat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sat-list .empty {
+  padding: 10px 6px;
+  color: var(--text-muted);
+}
