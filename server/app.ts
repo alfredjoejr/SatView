@@ -48,6 +48,11 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
     return false;
   }
 
+  const startedAt = Date.now();
+  res.once('finish', () => {
+    console.log(`[backend] ${req.method ?? 'GET'} ${pathname} -> ${res.statusCode} (${Date.now() - startedAt}ms)`);
+  });
+
   setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {

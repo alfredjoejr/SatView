@@ -43,6 +43,8 @@ function satViewBackendPlugin(): Plugin {
 export default defineConfig(() => {
   // Set SATVIEW_BASE=/SatView/ when deploying to a sub-path (e.g. GitHub Pages).
   const base = process.env.SATVIEW_BASE ?? '/';
+  const backendUrl = process.env.SATVIEW_BACKEND_URL;
+  const proxy = backendUrl ? { '/api': { target: backendUrl, changeOrigin: true } } : undefined;
 
   return {
     base,
@@ -50,7 +52,7 @@ export default defineConfig(() => {
       CESIUM_BASE_URL: JSON.stringify(`${base}${CESIUM_DIR}/`),
     },
     plugins: [
-      satViewBackendPlugin(),
+      ...(backendUrl ? [] : [satViewBackendPlugin()]),
       viteStaticCopy({
         targets: ['ThirdParty', 'Workers', 'Assets', 'Widgets'].map((folder) => ({
           src: `${CESIUM_SOURCE}/${folder}`,
@@ -59,6 +61,8 @@ export default defineConfig(() => {
         })),
       }),
     ],
+    server: proxy ? { proxy } : undefined,
+    preview: proxy ? { proxy } : undefined,
     worker: {
       format: 'es',
     },

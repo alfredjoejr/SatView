@@ -6,7 +6,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.ts",
+    "dev:frontend": "vite",
+    "dev:backend": "node server/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "server": "node server/index.ts",

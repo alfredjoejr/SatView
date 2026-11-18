@@ -57,12 +57,27 @@ src/
 
 ## Getting Started
 
+### Single-Command Launchers (Frontend + Backend)
+
+- **PowerShell (Windows / macOS / Linux):** `.\start.ps1`
+- **Windows Command Prompt / Explorer:** `start.bat`
+- **Linux / macOS (Bash):** `./start.sh`
+- **npm:** `npm run dev`
+
+All launchers automatically install `node_modules` if missing, then start both the **Node.js backend** (`http://127.0.0.1:3001`) and **Vite frontend** (`http://localhost:5173`, proxying `/api/*` to the backend).
+
+### Individual Commands
+
 ```bash
 # Install dependencies
 npm install
 
-# Start Vite frontend + integrated Node.js backend API together
+# Start both backend + frontend together
 npm run dev
+
+# Or run separately in two terminals:
+npm run dev:backend
+npm run dev:frontend
 
 # Typecheck and build for production
 npm run build
